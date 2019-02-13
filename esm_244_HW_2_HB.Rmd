@@ -1,0 +1,43 @@
+---
+title: "ESM 244 | Homework 2"
+author: "Hanna Buechi"
+date: "2/12/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r data_packages}
+
+library(tidyverse)
+library(ggrepel)
+
+whales <- read_csv("captive_cetacean.csv")
+
+```
+
+```{r initial_wrangling}
+
+summary(whales) # everything is character/string data
+
+# interesting time data is birth year (single data point) and transfers (could tell a story about individuals but hard to parse)
+
+# something more than a single histogram... histogram with some other elements...
+
+```
+
+
+```{r explo_plots}
+
+ggplot(whales, aes(x = originLocation)) +
+  geom_bar(aes(fill = species))
+
+# too many species, filter out some of them
+
+ggplot(whales, aes(x = originLocation)) +
+  geom_bar(aes(fill = acquisition))
+
+```
+
