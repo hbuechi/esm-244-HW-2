@@ -27,6 +27,10 @@ summary(whales) # everything is character/string data
 
 # something more than a single histogram... histogram with some other elements...
 
+
+whales$originDate <- as.Date(whales$originDate, "%m/%d/%y")
+whales$originYear <- lubridate::year(whales$originDate)
+
 ```
 
 
@@ -55,7 +59,7 @@ ggplot(whales, aes(x = acquisition)) +
 capture <- whales %>% 
   filter(acquisition == "Capture")
 
-capture$originDate <- as.Date(capture$originDate, "%m/%d/%Y") # couldn't pipe this, unfortunately
+capture$originDate <- as.Date(capture$originDate, "%m/%d/%y") # couldn't pipe this, unfortunately
 class(capture$originDate)
 
 capture$originYear <- lubridate::year(capture$originDate) # creates a vector which I add to the capture data set
@@ -64,14 +68,12 @@ capture$originYear <- lubridate::year(capture$originDate) # creates a vector whi
 
 ```{r capture_plot}
 
-ggplot(capture, aes(x = originYear)) +
-  geom_bar(aes(fill = species))
 
-# more than 150 cetaceans were captured in 1972??????????????????
 
-# This is your figure. Write text about it. Ie. The Marine Mammal Protection Act. Provide text of number of animals. Fill by most common species + other. Navy program?
-
-# Where do mothers in captivity come from?
+# more than 150 cetaceans were captured in 1972?????????????????? Huge outlier year
+# Marine Mammal Protection Act was effective December 21, 1972 -- introduced December 4, 1971
+# Who was capturing --> educational, research, navy
+# NOAA issues permits for importing marine mammals and collecting them from the wild. No permit needed to transfer between US facilities (except approval from APHIS under Animal Welfare Act).
 
 # Navy: beluga, bottlenose dolphin, common dolphin, Dall's porpoise, false killer whale, orca, Pacific white-sided, Pilot whale, Risso's dolphin, Rough-toothed dolphin
 
@@ -90,11 +92,18 @@ count(capture, currently == "U.S. Navy")
 
 # what about all animals taken to Navy?
 
-
-capture <- capture %>% 
-  group_by(currently) %>% 
-  count(.drop = group_by(currently))
-
+ggplot(capture, aes(x = originYear)) +
+  geom_bar() +
+  labs(title="Whales & Dolphins Captured from the Wild", 
+       subtitle="On December 21, 1972, The Marine Mammal Protection Act went into effect. It requires a permit\nto capture a cetacean for scientific or display purposes.") +
+  xlab("Year") +
+  ylab("Cetaceans captured") +
+  geom_segment(aes(x = 50, y = 170, xend = 72.5, yend = 170)) +
+  geom_segment(aes(x = 73, y = 170, xend = 100, yend = 170)) +
+  geom_text(x=60, y=160, label="Before MMPA") +
+  geom_text(x=85, y=160, label="After MMPA") +
+  geom_text(x=60, y=100, label="165 whales and dolphins\nwere captured in 1972.") +
+  theme_classic()
 
 ```
 
