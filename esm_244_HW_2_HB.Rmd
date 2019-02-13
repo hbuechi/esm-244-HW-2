@@ -13,6 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
 library(ggrepel)
+library(lubridate)
 
 whales <- read_csv("captive_cetacean.csv")
 
@@ -31,13 +32,87 @@ summary(whales) # everything is character/string data
 
 ```{r explo_plots}
 
-ggplot(whales, aes(x = originLocation)) +
-  geom_bar(aes(fill = species))
+# ggplot(whales, aes(x = originLocation)) +
+  # geom_bar(aes(fill = species))
 
 # too many species, filter out some of them
 
-ggplot(whales, aes(x = originLocation)) +
-  geom_bar(aes(fill = acquisition))
+# ggplot(whales, aes(x = originLocation)) +
+  # geom_bar(aes(fill = acquisition))
+
+# too many origin locations
+
+ggplot(whales, aes(x = acquisition)) +
+  geom_bar()
+
+# most are cetaceans are captured # when did captures happen? x = origin date --> month and year, y = number of animals captured
 
 ```
+
+
+```{r capture_wrangling}
+
+capture <- whales %>% 
+  filter(acquisition == "Capture")
+
+capture$originDate <- as.Date(capture$originDate, "%m/%d/%Y") # couldn't pipe this, unfortunately
+class(capture$originDate)
+
+capture$originYear <- lubridate::year(capture$originDate) # creates a vector which I add to the capture data set
+
+```
+
+```{r capture_plot}
+
+ggplot(capture, aes(x = originYear)) +
+  geom_bar(aes(fill = species))
+
+# more than 150 cetaceans were captured in 1972??????????????????
+
+# This is your figure. Write text about it. Ie. The Marine Mammal Protection Act. Provide text of number of animals. Fill by most common species + other. Navy program?
+
+# Where do mothers in captivity come from?
+
+# Navy: beluga, bottlenose dolphin, common dolphin, Dall's porpoise, false killer whale, orca, Pacific white-sided, Pilot whale, Risso's dolphin, Rough-toothed dolphin
+
+# https://en.wikipedia.org/wiki/United_States_Navy_Marine_Mammal_Program
+
+# check what is going on in 1972
+
+capture72 <- filter(capture, originYear == "72") # 165 animals
+summary(capture72$currently)
+
+length(capture$currently == "U.S. Navy")
+
+count(capture, currently == "U.S. Navy")
+
+# data looks fine
+
+# what about all animals taken to Navy?
+
+
+capture <- capture %>% 
+  group_by(currently) %>% 
+  count(.drop = group_by(currently))
+
+
+```
+
+
+```{r navy}
+
+navy <- filter(whales, currently == "U.S. Navy") # 206 animals
+
+
+
+```
+
+
+
+
+
+
+
+
+
 
