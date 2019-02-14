@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r data_packages}
+```{r data_packages, warning=FALSE, error=FALSE, message=FALSE}
 
 library(tidyverse)
 library(ggrepel)
@@ -17,26 +17,28 @@ library(lubridate)
 library(RColorBrewer)
 
 whales <- read_csv("captive_cetacean.csv")
+fish <- read_csv("fish_catch.csv")
 
 ```
 
-###Task 1.
+###Task 1. Data wrangling and visualization - cetaceans in captivity
 
-```{r initial_wrangling}
+
+####Initial data wrangling
+```{r whales_wrangling, warning=FALSE, error=FALSE, message=FALSE, results='hide'}
 
 summary(whales) # everything is character/string data
-
 # interesting time data is birth year (single data point) and transfers (could tell a story about individuals but hard to parse)
-
 # something more than a single histogram... histogram with some other elements...
-
 
 whales$originDate <- as.Date(whales$originDate, "%m/%d/%y") # lower case "y" keeps date as 19xx =)
 whales$originYear <- lubridate::year(whales$originDate)
 
+# Check to make sure dates expanded correctly
+
 as.data.frame(table(whales$originYear))
 
-# wrong years: 2049, 2052, 2053, 2055, 2056, 2059, 2060, 2061, 2062, 2063, 2064, 2065, 2066, 2067, 2068
+# NOPE --> wrong years: 2049, 2052, 2053, 2055, 2056, 2059, 2060, 2061, 2062, 2063, 2064, 2065, 2066, 2067, 2068
 
 whales <- whales %>%
   mutate(originYear=replace(originYear, originYear==2049, 1949)) %>%  
@@ -56,22 +58,25 @@ whales <- whales %>%
   mutate(originYear=replace(originYear, originYear==2067, 1967)) %>%
   mutate(originYear=replace(originYear, originYear==2068, 1968))
 
+# df of cetaceans that were captured
+
 capture <- whales %>% 
   filter(acquisition == "Capture")
 
-as.data.frame(table(capture$originYear))
+# df of cetaceans that were captured in 1972
 
 capture72 <- filter(capture, originYear == 1972)
-summary(capture72$currently)
 
 ```
 
-```{r species}
 
-# dolphins, orcas, belugas, porpoises, other whales
+####Group species by "type"
+#####*I didn't end up using this classification*
+```{r species, warning=FALSE, error=FALSE, message=FALSE}
+
+# Group by dolphins, orcas, belugas, other whales
 # Dolphin: "Bottlenose" "Commerson's" "Common" "Pacific White-Sided" "Pantropical Spotted" "Risso's" "River, Amazon" "Rough-Toothed" "Spinner" "Spotted, Atlantic" "Tucuxi" "White-Beaked" "White-sided, Pacific"
 # Orca: "Killer Whale; Orca" 
-
 # Beluga whale: "Beluga" and "Beluga whale"
 # Other species: "False Killer Whale" "Melon-Headed Whale" "Northern Right Whale" "Pilot, Short-fin" "Pilot, Short-finned" "Pseudorca" "Pygmy Killer Whale" "Short-Finned Pilot Whale" "Unspecified Pilot Whales"
 
@@ -94,28 +99,24 @@ capture <- capture %>%
                 ifelse(species == "Beluga", "Beluga whales",
                 ifelse(species == "Beluga whale", "Beluga whales",
                 "Others"))))))))))))))))))
-  
 
+# Did not use this in visualization
 
 ```
 
-```{r capture_plot}
 
-# more than 150 cetaceans were captured in 1972?????????????????? Huge outlier year
-# Marine Mammal Protection Act was effective December 21, 1972 -- introduced December 4, 1971
-# Who was capturing --> educational, research, navy
+####Visualize!
+```{r capture_plot, warning=FALSE, error=FALSE, message=FALSE}
+
+# The Marine Mammal Protection Act was effective December 21, 1972 -- introduced December 4, 1971
 # NOAA issues permits for importing marine mammals and collecting them from the wild. No permit needed to transfer between US facilities (except approval from APHIS under Animal Welfare Act).
-
-# Navy: beluga, bottlenose dolphin, common dolphin, Dall's porpoise, false killer whale, orca, Pacific white-sided, Pilot whale, Risso's dolphin, Rough-toothed dolphin
-
-# https://en.wikipedia.org/wiki/United_States_Navy_Marine_Mammal_Program
 
 # check what is going on in 1972
 
  # 165 animals
 
 ggplot(capture, aes(x = originYear)) +
-  geom_bar(aes(fill = Type)) +
+  geom_bar() +
   labs(title="Regulating Cetaceans in Captivity", 
        subtitle="On December 21, 1972, The Marine Mammal Protection Act went into effect. It requires a permit\nto capture a cetacean for scientific or display purposes.\n") +
   theme(plot.title = element_text(face = "bold")) +
@@ -130,14 +131,41 @@ ggplot(capture, aes(x = originYear)) +
   alpha = .2, fill = "blue") +
   theme_classic()
 
-# who was capturing
-# what species were captured # I don't think this is very interesting - just mostly dolphins
 
 ```
 
+###Task 2. Parameter Estimation - Wild Fish Catch
 
+Data source: Global wild fish catch and aquaculture production, compiled by Earth Policy Institute
+with 1950-2010 from U.N. Food and Agriculture Organization (FAO), Global Capture Production
+and Global Aquaculture Production, electronic databases, at
+www.fao.org/fishery/topic/16140/en. Catch is in millions of tons.
 
+```{r fish_wrangling}
 
+# set 1950 as year 0
+
+# make a vector with 63 numbers, starting at 0, column bind to fish df
+
+time <- c(0:62)
+
+fish <- fish %>%
+  slice(1:63) %>% # remove text in the last few rows that I missed when cleaning the csv in Excel
+  cbind(time)
+
+```
+####Part a. Exploratory graph
+
+```{r wild_time}
+
+# wild catch over time
+
+ggplot(fish, aes(x = Year, y = wild)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  theme_minimal()
+
+```
 
 
 
