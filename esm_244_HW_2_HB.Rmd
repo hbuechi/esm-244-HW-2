@@ -14,10 +14,13 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(ggrepel)
 library(lubridate)
+library(RColorBrewer)
 
 whales <- read_csv("captive_cetacean.csv")
 
 ```
+
+###Task 1.
 
 ```{r initial_wrangling}
 
@@ -28,47 +31,75 @@ summary(whales) # everything is character/string data
 # something more than a single histogram... histogram with some other elements...
 
 
-whales$originDate <- as.Date(whales$originDate, "%m/%d/%y")
+whales$originDate <- as.Date(whales$originDate, "%m/%d/%y") # lower case "y" keeps date as 19xx =)
 whales$originYear <- lubridate::year(whales$originDate)
 
-```
+as.data.frame(table(whales$originYear))
 
+# wrong years: 2049, 2052, 2053, 2055, 2056, 2059, 2060, 2061, 2062, 2063, 2064, 2065, 2066, 2067, 2068
 
-```{r explo_plots}
-
-# ggplot(whales, aes(x = originLocation)) +
-  # geom_bar(aes(fill = species))
-
-# too many species, filter out some of them
-
-# ggplot(whales, aes(x = originLocation)) +
-  # geom_bar(aes(fill = acquisition))
-
-# too many origin locations
-
-ggplot(whales, aes(x = acquisition)) +
-  geom_bar()
-
-# most are cetaceans are captured # when did captures happen? x = origin date --> month and year, y = number of animals captured
-
-```
-
-
-```{r capture_wrangling}
+whales <- whales %>%
+  mutate(originYear=replace(originYear, originYear==2049, 1949)) %>%  
+  mutate(originYear=replace(originYear, originYear==2052, 1952)) %>%
+  mutate(originYear=replace(originYear, originYear==2053, 1953)) %>%
+  mutate(originYear=replace(originYear, originYear==2055, 1955)) %>%
+  mutate(originYear=replace(originYear, originYear==2056, 1956)) %>%
+  mutate(originYear=replace(originYear, originYear==2058, 1958)) %>%
+  mutate(originYear=replace(originYear, originYear==2059, 1959)) %>%
+  mutate(originYear=replace(originYear, originYear==2060, 1960)) %>%
+  mutate(originYear=replace(originYear, originYear==2061, 1961)) %>%
+  mutate(originYear=replace(originYear, originYear==2062, 1962)) %>%
+  mutate(originYear=replace(originYear, originYear==2063, 1963)) %>%
+  mutate(originYear=replace(originYear, originYear==2064, 1964)) %>%
+  mutate(originYear=replace(originYear, originYear==2065, 1965)) %>%
+  mutate(originYear=replace(originYear, originYear==2066, 1966)) %>%
+  mutate(originYear=replace(originYear, originYear==2067, 1967)) %>%
+  mutate(originYear=replace(originYear, originYear==2068, 1968))
 
 capture <- whales %>% 
   filter(acquisition == "Capture")
 
-capture$originDate <- as.Date(capture$originDate, "%m/%d/%y") # couldn't pipe this, unfortunately
-class(capture$originDate)
+as.data.frame(table(capture$originYear))
 
-capture$originYear <- lubridate::year(capture$originDate) # creates a vector which I add to the capture data set
+capture72 <- filter(capture, originYear == 1972)
+summary(capture72$currently)
+
+```
+
+```{r species}
+
+# dolphins, orcas, belugas, porpoises, other whales
+# Dolphin: "Bottlenose" "Commerson's" "Common" "Pacific White-Sided" "Pantropical Spotted" "Risso's" "River, Amazon" "Rough-Toothed" "Spinner" "Spotted, Atlantic" "Tucuxi" "White-Beaked" "White-sided, Pacific"
+# Orca: "Killer Whale; Orca" 
+
+# Beluga whale: "Beluga" and "Beluga whale"
+# Other species: "False Killer Whale" "Melon-Headed Whale" "Northern Right Whale" "Pilot, Short-fin" "Pilot, Short-finned" "Pseudorca" "Pygmy Killer Whale" "Short-Finned Pilot Whale" "Unspecified Pilot Whales"
+
+capture <- capture %>% 
+  mutate(Type = ifelse(species == "Bottlenose", "Dolphins",
+                ifelse(species == "Commerson's", "Dolphins",
+                ifelse(species == "Common", "Dolphins",
+                ifelse(species == "Pacific White-Sided", "Dolphins",
+                ifelse(species == "Pantropical Spotted", "Dolphins",
+                ifelse(species == "Risso's", "Dolphins",
+                ifelse(species == "River, Amazon", "Dolphins",
+                ifelse(species == "Rough-Toothed", "Dolphins",
+                ifelse(species == "Spinner", "Dolphins",
+                ifelse(species == "Rough-Toothed", "Dolphins",
+                ifelse(species == "Spotted, Atlantic", "Dolphins",
+                ifelse(species == "Tucuxi", "Dolphins",
+                ifelse(species == "White-Beaked", "Dolphins",
+                ifelse(species == "White-sided, Pacific", "Dolphins",
+                ifelse(species == "Killer Whale; Orca", "Orcas",
+                ifelse(species == "Beluga", "Beluga whales",
+                ifelse(species == "Beluga whale", "Beluga whales",
+                "Others"))))))))))))))))))
+  
+
 
 ```
 
 ```{r capture_plot}
-
-
 
 # more than 150 cetaceans were captured in 1972?????????????????? Huge outlier year
 # Marine Mammal Protection Act was effective December 21, 1972 -- introduced December 4, 1971
@@ -81,41 +112,28 @@ capture$originYear <- lubridate::year(capture$originDate) # creates a vector whi
 
 # check what is going on in 1972
 
-capture72 <- filter(capture, originYear == "72") # 165 animals
-summary(capture72$currently)
-
-length(capture$currently == "U.S. Navy")
-
-count(capture, currently == "U.S. Navy")
-
-# data looks fine
-
-# what about all animals taken to Navy?
+ # 165 animals
 
 ggplot(capture, aes(x = originYear)) +
-  geom_bar() +
-  labs(title="Whales & Dolphins Captured from the Wild", 
-       subtitle="On December 21, 1972, The Marine Mammal Protection Act went into effect. It requires a permit\nto capture a cetacean for scientific or display purposes.") +
+  geom_bar(aes(fill = Type)) +
+  labs(title="Regulating Cetaceans in Captivity", 
+       subtitle="On December 21, 1972, The Marine Mammal Protection Act went into effect. It requires a permit\nto capture a cetacean for scientific or display purposes.\n") +
+  theme(plot.title = element_text(face = "bold")) +
   xlab("Year") +
   ylab("Cetaceans captured") +
-  geom_segment(aes(x = 50, y = 170, xend = 72.5, yend = 170)) +
-  geom_segment(aes(x = 73, y = 170, xend = 100, yend = 170)) +
-  geom_text(x=60, y=160, label="Before MMPA") +
-  geom_text(x=85, y=160, label="After MMPA") +
-  geom_text(x=60, y=100, label="165 whales and dolphins\nwere captured in 1972.") +
+  geom_segment(aes(x = 1950, y = 170, xend = 1972.5, yend = 170)) +
+  geom_segment(aes(x = 1973, y = 170, xend = 2000, yend = 170)) +
+  geom_text(x=1960, y=160, label="Before MMPA") +
+  geom_text(x=1985, y=160, label="After MMPA") +
+  geom_text(x=1960, y=100, label="165 whales and dolphins\nwere captured from the wild\nin 1972.") +
+  annotate("rect", xmin = 1951, xmax = 1969, ymin = 80, ymax = 120,
+  alpha = .2, fill = "blue") +
   theme_classic()
 
-```
-
-
-```{r navy}
-
-navy <- filter(whales, currently == "U.S. Navy") # 206 animals
-
-
+# who was capturing
+# what species were captured # I don't think this is very interesting - just mostly dolphins
 
 ```
-
 
 
 
