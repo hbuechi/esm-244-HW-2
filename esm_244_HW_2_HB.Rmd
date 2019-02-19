@@ -9,36 +9,35 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+###Task 1. Data wrangling and visualization - cetaceans in captivity
+
+####Initial data wrangling
 ```{r data_packages, warning=FALSE, error=FALSE, message=FALSE}
 
+library(knitr)
 library(tidyverse)
 library(ggrepel)
 library(lubridate)
 library(RColorBrewer)
+library(kableExtra)
+library(boot)
 
 whales <- read_csv("captive_cetacean.csv")
-fish <- read_csv("fish_catch.csv")
 
 ```
 
-###Task 1. Data wrangling and visualization - cetaceans in captivity
-
-
-####Initial data wrangling
 ```{r whales_wrangling, warning=FALSE, error=FALSE, message=FALSE, results='hide'}
 
 summary(whales) # everything is character/string data
 # interesting time data is birth year (single data point) and transfers (could tell a story about individuals but hard to parse)
-# something more than a single histogram... histogram with some other elements...
+# make something more than a single histogram... histogram with some other elements... text could be cool, or arrows...
 
 whales$originDate <- as.Date(whales$originDate, "%m/%d/%y") # lower case "y" keeps date as 19xx =)
-whales$originYear <- lubridate::year(whales$originDate)
+whales$originYear <- lubridate::year(whales$originDate) # take the year out of the date format
 
-# Check to make sure dates expanded correctly
+# as.data.frame(table(whales$originYear)) # Check to make sure dates expanded correctly
 
-as.data.frame(table(whales$originYear))
-
-# NOPE --> wrong years: 2049, 2052, 2053, 2055, 2056, 2059, 2060, 2061, 2062, 2063, 2064, 2065, 2066, 2067, 2068
+# THEY DID NOT --> years that are wrong 2049, 2052, 2053, 2055, 2056, 2059, 2060, 2061, 2062, 2063, 2064, 2065, 2066, 2067, 2068
 
 whales <- whales %>%
   mutate(originYear=replace(originYear, originYear==2049, 1949)) %>%  
@@ -56,23 +55,19 @@ whales <- whales %>%
   mutate(originYear=replace(originYear, originYear==2065, 1965)) %>%
   mutate(originYear=replace(originYear, originYear==2066, 1966)) %>%
   mutate(originYear=replace(originYear, originYear==2067, 1967)) %>%
-  mutate(originYear=replace(originYear, originYear==2068, 1968))
-
-# df of cetaceans that were captured
+  mutate(originYear=replace(originYear, originYear==2068, 1968)) # long code but it works
 
 capture <- whales %>% 
-  filter(acquisition == "Capture")
+  filter(acquisition == "Capture") # df of cetaceans that were captured
 
-# df of cetaceans that were captured in 1972
-
-capture72 <- filter(capture, originYear == 1972)
+capture72 <- filter(capture, originYear == 1972) # df of cetaceans that were captured in 1972 --> if I have time, use this to make an element to add to capture figure
 
 ```
 
 
 ####Group species by "type"
-#####*I didn't end up using this classification*
-```{r species, warning=FALSE, error=FALSE, message=FALSE}
+#####*I didn't end up using this classification in my figure*
+```{r species, warning=FALSE, error=FALSE, message=FALSE, results='hide'}
 
 # Group by dolphins, orcas, belugas, other whales
 # Dolphin: "Bottlenose" "Commerson's" "Common" "Pacific White-Sided" "Pantropical Spotted" "Risso's" "River, Amazon" "Rough-Toothed" "Spinner" "Spotted, Atlantic" "Tucuxi" "White-Beaked" "White-sided, Pacific"
@@ -100,7 +95,7 @@ capture <- capture %>%
                 ifelse(species == "Beluga whale", "Beluga whales",
                 "Others"))))))))))))))))))
 
-# Did not use this in visualization
+# as.data.frame(table(capture$Type)) # see counts of species types
 
 ```
 
@@ -108,66 +103,241 @@ capture <- capture %>%
 ####Visualize!
 ```{r capture_plot, warning=FALSE, error=FALSE, message=FALSE}
 
+# What is going on in 1972??? 165 animals!!!
 # The Marine Mammal Protection Act was effective December 21, 1972 -- introduced December 4, 1971
 # NOAA issues permits for importing marine mammals and collecting them from the wild. No permit needed to transfer between US facilities (except approval from APHIS under Animal Welfare Act).
 
-# check what is going on in 1972
-
- # 165 animals
-
 ggplot(capture, aes(x = originYear)) +
+  annotate("rect", xmin = 1950, xmax = 1972.5, ymin = 0, ymax = 170,
+  alpha = .3, fill = "seagreen3") +
+  annotate("rect", xmin = 1972.7, xmax = 2000, ymin = 0, ymax = 170,
+  alpha = .6, fill = "lightgoldenrod1") +
   geom_bar() +
-  labs(title="Regulating Cetaceans in Captivity", 
-       subtitle="On December 21, 1972, The Marine Mammal Protection Act went into effect. It requires a permit\nto capture a cetacean for scientific or display purposes.\n") +
-  theme(plot.title = element_text(face = "bold")) +
-  xlab("Year") +
-  ylab("Cetaceans captured") +
-  geom_segment(aes(x = 1950, y = 170, xend = 1972.5, yend = 170)) +
-  geom_segment(aes(x = 1973, y = 170, xend = 2000, yend = 170)) +
-  geom_text(x=1960, y=160, label="Before MMPA") +
-  geom_text(x=1985, y=160, label="After MMPA") +
-  geom_text(x=1960, y=100, label="165 whales and dolphins\nwere captured from the wild\nin 1972.") +
-  annotate("rect", xmin = 1951, xmax = 1969, ymin = 80, ymax = 120,
-  alpha = .2, fill = "blue") +
-  theme_classic()
-
+  labs(x="Year", y="Cetaceans captured",
+       title="The Unintended Consequences of the Marine Mammal Protection Act\n",
+       caption="\nOn December 21, 1972, the Marine Mammal Protection Act (MMPA) went into effect. It made\ncapturing whales and dolphins illegal without a permit. In 1972, institutions around the country acted\nquickly to capture wild animals before the process became more complicated. Most of the animals\ncaptured were dolphins.Source: Amber Thomas at The Pudding, US National Marine Mammal\nInventory, Ceta Base.") +
+  geom_text(x=1961, y=155, label="Before MMPA", size = 4) +
+  geom_text(x=1985, y=155, label="After MMPA", size = 4) +
+  annotate("rect", xmin = 1952, xmax = 1970, ymin = 70, ymax = 110,
+  alpha = 1, fill = "white") +
+  geom_text(x=1961, y=90, label="165 whales and dolphins\nwere captured from the wild\nin 1972.", size = 3.3) +
+  theme_classic() +
+  theme(plot.caption = element_text(hjust = 0, size = 11),
+        plot.title = element_text(size = 13, face = "bold"),
+        axis.title = element_text(size=12))
 
 ```
 
+I was really excited about this figure before I looked at Amber Thomas' article on *The Pudding*. She also acknowledges the Marine Mammal Protection Act as a significant event affecting wild capture trends and produced a very similar figure (albeit way cooler than mine!). I thought I was being particularly insightful because I used to work with the MMPA everyday at an old job. Anyway, I wanted to say that I didn't copy Amber's figure. I saw hers after I made mine. I'm proud of this one so I decided not to start from scratch.
+
+
 ###Task 2. Parameter Estimation - Wild Fish Catch
 
-Data source: Global wild fish catch and aquaculture production, compiled by Earth Policy Institute
-with 1950-2010 from U.N. Food and Agriculture Organization (FAO), Global Capture Production
-and Global Aquaculture Production, electronic databases, at
-www.fao.org/fishery/topic/16140/en. Catch is in millions of tons.
-
-```{r fish_wrangling}
+```{r fish_wrangling, warning=FALSE, error=FALSE, message=FALSE}
 
 # set 1950 as year 0
-
 # make a vector with 63 numbers, starting at 0, column bind to fish df
-
+fish <- read_csv("fish_catch.csv")
 time <- c(0:62)
 
 fish <- fish %>%
   slice(1:63) %>% # remove text in the last few rows that I missed when cleaning the csv in Excel
   cbind(time)
 
+fish$Year <- as.numeric(fish$Year)
+
 ```
-####Part a. Exploratory graph
 
-```{r wild_time}
+####Exploratory plot
+```{r wild_time, warning=FALSE, error=FALSE, message=FALSE}
 
-# wild catch over time
-
-ggplot(fish, aes(x = Year, y = wild)) +
+ggplot(fish, aes(x = time, y = wild)) +
   geom_point() +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
-  theme_minimal()
+  theme_light()
+
+# my estimates for A, B, and r (according to the graph) 
+# for r, I think there is constant growth between time 0 and 40
+Aest <- 87 # K = carrying capacity
+Best <- (87-17)/17 #N0 = 17 # multipler using carrying capacity and initial "pop size" to hedge exponential growth
+
+constant_growth <- fish %>% # filter out constant growth phase in order to estimate r
+  filter(time < 40)
+
+# equation I'll use to solve for r: y = e^rt -> ln(y) = rt
+# check to see if this is linear-ish -- using log(wild) not wild!!!
+# constant_growth_plot <- ggplot(constant_growth, aes(x = time, y = log(wild))) +
+  # geom_point()
+
+constant_growth_lm <- lm(log(wild) ~ time, data = constant_growth) # calculates function of line for constant growth, transforming y-axis in order to isolate r
+
+# constant_growth_lm
+# log(wild catch) = time * 0.03562
+
+rest <- 0.03562
 
 ```
 
+This looks like it could be logistic growth. The initial wild catch is about 17 (millions of tons). There is a clear leveling off / carrying capacity around 87 (millions of tons). Growth in wild catch is fairly constant until that carrying capacity limit around time 40. A logistic growth equation wouldn't account for the drop in wild catch time 18 and 22, but I think that is okay. I am just trying to model the general trend, not account for relationships between individual time points.
 
+Logistic growth: 
+$$N_t=\frac{K}{1+\frac{K-N_0}{N_0}e^{-rt}}$$
 
+Subsitute coefficients to use in nls(): 
+$$N_t=\frac{A}{1+Be^{-rt}}$$
 
+Initial estimates:
+$$A = 87$$
+$$N_0 = 17$$
+$$B = \frac{87-17}{17} = 4.12$$
+$$r = 0.036$$
+$$N_t=\frac{87}{1+4.12e^{-0.036t}}$$
+
+####Modeling
+```{r nls, warning=FALSE, error=FALSE, message=FALSE, results='hide'}
+
+# run the nonlinear least squares model
+wild_fit <- nls(wild ~ Aa/(1 + Bb*exp(-rr*time)),
+                start = list(Aa = Aest, Bb = Best, rr = rest),
+                data = fish,
+                trace = TRUE)
+# wild_fit
+
+# Store A, B, and r coefficients in order to plot the model line
+A <- coef(wild_fit)[1] # first coefficient reported in wild_fit model is A --> open wild_fit to see this
+B <- coef(wild_fit)[2]
+r <- coef(wild_fit)[3]
+
+# Create a new sequence of time values
+time_seq <- seq(0,62,length = 100) # sequence of 0 to 62 with 100 increments --> this means I'll graph 100 points to get my line from nonlinear model
+
+# Plug that new sequence into my model with the paragmeters A, B, and r that R found in nls() model # this is a vector
+wild_pred <- A/(1+B*exp(-r*time_seq)) 
+
+# Bind that together with the time series data for plotting
+pred_df <- data.frame(time_seq, wild_pred)
+
+```
+
+####Plot with model
+```{r}
+
+# Create a graph with original data and our model predictions
+ggplot(fish, aes(x = time, y = wild)) +
+  geom_point(color = "deepskyblue3", size = 2) +
+  labs(x = "\nYear", y = "Global wild catch\n(millions tons)\n") +
+  geom_line(data = pred_df, aes(x = time_seq, y = wild_pred), color = "coral2", size = 0.7) +
+  scale_x_continuous(labels=c("0" = "1950",
+                              "20" = "1970",
+                              "40" = "1990",
+                              "60" = "2010")) +
+  theme_light() +
+  theme(axis.title = element_text(size=14))
+```
+
+####Table of results
+```{r results_table, warning=FALSE, error=FALSE, message=FALSE}
+
+para_vec <- c("A (million tons)", "B (million tons)", "r (million tons/year)")
+pred_vec <- c("87", "4.12", "0.036")
+mod_vec <- c("100", "4.32", "0.070")
+
+results2_df <- data.frame(para_vec, pred_vec, mod_vec) %>%  
+  rename("Model parameters" = "para_vec", "Predicted" = "pred_vec", "Modeled" = "mod_vec")
+
+kable(results2_df) %>%
+  kable_styling(bootstrap_options = "striped", full_width = FALSE) %>% 
+  add_header_above(c("Nonlinear least squares using logistic growth to model global wild fish catch from 1950-2012" = 3))
+
+```
+
+###Task 3. Bootstrapped Confidence Interval for Proportions
+
+*In the study, 22 out of 36 surveyed UCSB community members (61%) identifying as
+nonbinary/genderqueer responded that they had personally experienced “exclusionary,
+offensive, hostile or intimidating conduct” (compared to 26% and 19% for those identifying as
+women and men, respectively).*
+
+This is like saying that I have a sample with 36 observations, 22 of which are Y (as in "yes, I have experienced this") and 14 are N ("no, I haven't experienced this").
+
+####Create a vector of data
+```{r warning=FALSE, error=FALSE, message=FALSE}
+
+sample <- c(rep("Y", times = 22), rep("N", times = 14))
+
+```
+
+####Write a function to calculate the proportion of "Y"
+```{r warning=FALSE, error=FALSE, message=FALSE}
+
+prop_fun <- function(x,i) {length(which(x[i]=="Y"))/length(x[i])}
+
+# length(x[i]) takes the total number of observations in the sample
+# length(which(x[i]=="Y")) takes the number of observations in the sample that are "Y" aka. yes, I experience harassment
+
+# x is the bootstrapped sample of 36 respondents; i is the bootstrap sample number (ie. 10,000 bootstraps), like "x subscript i"
+
+```
+####Bootstrap
+```{r warning=FALSE, error=FALSE, message=FALSE}
+
+boot <- boot(sample, prop_fun, R = 60000) # vector you're pulling from, function you're using, number of bootstraps
+
+# boot
+# boot$t # proportion "Y" of each bootstrap! YAY!!!! I think it worked!
+# boot$t0 # mean of props of bootstraps
+
+```
+
+####Plot the bootstrapped proportions
+```{r warning=FALSE, error=FALSE, message=FALSE}
+
+ggplot() +
+  aes(boot$t) + # prop of each bootstrap sample
+  geom_histogram()
+
+```
+
+#### 95% confidence interval
+```{r warning=FALSE, error=FALSE, message=FALSE, results='hide'}
+
+boot.ci(boot, conf = 0.95)
+
+# Percentile: 0.4444 to 0.7778
+
+```
+
+####Summary
+
+The proportion of nonbinary/genderqueer students at UCSB that report experiencing exclusionary, hostile, or intimidating treatment is 61% (n=36), with a bootstrapped 95% confidence interval of [44%, 78%] (n = 60,000 bootstrap samples).
+
+###Task 4. Watch 3 RStudio::conf talks
+
+####Teaching data science with puzzled (Irene Steves)
+
+I learned that:
+
+- The best way to name files is like this: 01_description.csv. This is machine-readable (no spaces), human-readable (the description makes sense), and works with default ordering (the 0 becomes a 1 once you get into the teens, etc.)
+- The separate_rows() function with tidy a column that has delimited entries!!!
+
+I would like to know why the authors of tidiesofmarch() (the puzzle package) use R scripts as part of the workflow. It seems like the puzzle document that the user works in gives instructions and asks for code and inputs. Isn't that mix of text and code best supported by RMarkdown?
+
+####Solving the model representation problem with broom (Alex Hayes)
+
+I learned that:
+
+- broom() is the package that I needed for organizing many, many MLRs for my Group Project. *Mind blown*
+- Other people (other *data scientists* who I assume know a lot more than I do about R) deal with too-high "cognitive load" (ie. not remembering what to call)
+
+I would like to know to visualize these model comparisons (Alex mentioned this is the talk but didn't give an example).
+
+*Note to self:* watch this again at https://bit.ly/2TijZKM
+
+####The Resilient R Champion (Tonya Filz)
+
+I learned that:
+
+- Not all data scientists necessarily use R or are R experts
+- Open Source RStudio and Professional RStudio are different products, and RStudio promotes "technology philanthropy" ("help R help other users") through the paid service!
+
+I would like to know if Tonya's role on the Customer Success Team at RStudio includes providing external IT support. What is her day-to-day job like? It sounds people-oriented and code-oriented.
 
